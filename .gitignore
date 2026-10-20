@@ -139,3 +139,6 @@ dmypy.json
 # nbdime Stuff
 .gitattributes
 
+
+# Unzipped challenge data (invoice_train.csv > GitHub 100 MB limit)
+data/*/

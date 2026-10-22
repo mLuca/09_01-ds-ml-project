@@ -142,3 +142,6 @@ dmypy.json
 
 # Unzipped challenge data (invoice_train.csv > GitHub 100 MB limit)
 data/*/
+
+# Personal working copies of the team notebook (e.g. 04_fraud_project_kb.ipynb)
+04_fraud_project_*.ipynb

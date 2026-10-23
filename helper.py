@@ -39,6 +39,7 @@ def build_features(clients: pd.DataFrame, invoices:pd.DataFrame) -> pd.DataFrame
         mismatch_any=("mismatch", "max"),
         first_invoice=("invoice_date", "min"),
         last_invoice=("invoice_date", "max"),
+        n_counter_codes=("counter_code", "nunique"),
     )
     agg["history_years"] = (agg.pop("last_invoice") - agg.pop("first_invoice")).dt.days / 365.25
 

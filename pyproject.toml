@@ -3,6 +3,7 @@ name = "ds-ml-project-template"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "joblib>=1.5.3",
     "lightgbm>=4.7.0",
     "pandas>=3.0.3",
     "plotly>=6.8.0",

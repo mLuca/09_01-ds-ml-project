@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score, recall_score, precision_score, fbeta_score
 
 
 # Feature table: one row per client (fixed rules only, no fit)
@@ -38,6 +39,7 @@ def build_features(clients: pd.DataFrame, invoices:pd.DataFrame) -> pd.DataFrame
         mismatch_any=("mismatch", "max"),
         first_invoice=("invoice_date", "min"),
         last_invoice=("invoice_date", "max"),
+        n_counter_codes=("counter_code", "nunique"),
     )
     agg["history_years"] = (agg.pop("last_invoice") - agg.pop("first_invoice")).dt.days / 365.25
 
@@ -150,3 +152,38 @@ def fraud_rate_by_signals(features: pd.DataFrame, signals: list = (1, 2)) -> pd.
     sub = features[features["n_signals"].isin(signals)]
     out = sub.groupby("n_signals")["target"].agg(clients="size", fraudsters="sum", fraud_ratio="mean")
     return out.reindex(list(signals))
+
+ 
+#########################################################################################################################
+
+
+######################## Code below needed to calculate the business metrics on the top X% probable frauds ########################
+
+
+
+def top_fraction_report(y_true, proba, frac: float = 0.10) -> dict:
+    """ROC-AUC, recall and F2 for the frac of clients with the highest predicted probability.
+
+    The top frac are treated as "flagged as fraud" (e.g. the 10% an inspector can visit):
+    recall and F2 are measured against ALL fraudsters, so recall = share of fraudsters caught in the top frac.
+    ROC-AUC is computed inside the flagged group only (how well the scores rank fraud above non-fraud there).
+    """
+    y_true = np.asarray(y_true)
+    proba = np.asarray(proba)
+    n_top = int(np.ceil(frac * len(proba)))
+    top_idx = np.argsort(-proba, kind="stable")[:n_top]
+
+    flagged = np.zeros(len(proba), dtype=int)
+    flagged[top_idx] = 1
+
+    y_top = y_true[top_idx]
+    auc = roc_auc_score(y_top, proba[top_idx]) if 0 < y_top.sum() < n_top else np.nan   # needs both classes
+    return {
+        "n_flagged": n_top,
+        "roc_auc": auc,
+        "recall": recall_score(y_true, flagged),
+        "precision": precision_score(y_true, flagged),
+        "f2": fbeta_score(y_true, flagged, beta=2),
+    }
+
+#########################################################################################################################

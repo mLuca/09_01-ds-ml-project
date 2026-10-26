@@ -1,3 +1,6 @@
+from datetime import date
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score, recall_score, precision_score, fbeta_score
@@ -187,3 +190,30 @@ def top_fraction_report(y_true, proba, frac: float = 0.10) -> dict:
     }
 
 #########################################################################################################################
+
+
+# Results of all model notebooks in one file, read by the main notebook (5.5)
+RESULTS_PATH = Path(__file__).parent / "models" / "results.csv"
+
+
+def save_result(model, owner, notebook, auc_mean, auc_std, recall_top10=None, precision_top10=None, holdout_auc=None):
+    """Write one model's CV result to models/results.csv – one row per model, replaced on every rerun.
+
+    holdout_auc is info only (models are chosen by CV, ADR-001); left out, the stored value is kept.
+    """
+    row = pd.DataFrame([{
+        "model": model, "owner": owner, "notebook": notebook,
+        "cv_auc_mean": round(float(auc_mean), 4), "cv_auc_std": round(float(auc_std), 4),
+        "recall_top10": None if recall_top10 is None else round(float(recall_top10), 4),
+        "precision_top10": None if precision_top10 is None else round(float(precision_top10), 4),
+        "holdout_auc": None if holdout_auc is None else round(float(holdout_auc), 4),
+        "updated": date.today().isoformat(),
+    }])
+    if RESULTS_PATH.exists():
+        old = pd.read_csv(RESULTS_PATH)
+        prev = old.loc[old["model"] == model, "holdout_auc"] if "holdout_auc" in old else []
+        if holdout_auc is None and len(prev):
+            row["holdout_auc"] = prev.iloc[0]
+        row = pd.concat([old[old["model"] != model], row], ignore_index=True)
+    row.to_csv(RESULTS_PATH, index=False)
+    return row
